@@ -1,0 +1,215 @@
+// Prisma Schema for Multi-Tenant Student Counseling & Cognitive Profiling Platform
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  SUPERADMIN
+  SCHOOL_ADMIN
+  TEACHER
+  COUNSELOR
+  STUDENT
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_PROVISION
+}
+
+enum SubscriptionTier {
+  BASIC
+  PREMIUM
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PENDING
+  EXPIRED
+}
+
+enum DistressLevel {
+  LOW
+  MEDIUM
+  HIGH
+  SEVERE
+  CRITICAL
+}
+
+enum CrisisStatus {
+  OPEN
+  OVERRIDDEN
+  ESCALATED_TO_HUMAN
+  RESOLVED
+}
+
+// -------------------------------------------------------------
+// Multi-Tenant School Entity
+// -------------------------------------------------------------
+model School {
+  id               String            @id @default(uuid())
+  name             String
+  code             String            @unique
+  domain           String            @unique
+  contactEmail     String
+  status           TenantStatus      @default(ACTIVE)
+  maxStudents      Int               @default(500)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  users            User[]
+  subscription     Subscription?
+  cognitiveProfiles CognitiveProfile[]
+  crisisEscalations CrisisEscalation[]
+  auditLogs        AuditLog[]
+
+  @@map("schools")
+}
+
+// -------------------------------------------------------------
+// Subscriptions & Billing
+// -------------------------------------------------------------
+model Subscription {
+  id           String             @id @default(uuid())
+  schoolId     String             @unique
+  school       School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  tier         SubscriptionTier   @default(PREMIUM)
+  status       SubscriptionStatus @default(ACTIVE)
+  billingCycle String             @default("ANNUAL") // MONTHLY or ANNUAL
+  price        Float
+  currency     String             @default("INR")
+  startDate    DateTime           @default(now())
+  endDate      DateTime
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@map("subscriptions")
+}
+
+// -------------------------------------------------------------
+// User Management & Isolation
+// -------------------------------------------------------------
+model User {
+  id           String        @id @default(uuid())
+  schoolId     String?       // NULL for SUPERADMIN role
+  school       School?       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name         String
+  email        String        @unique
+  passwordHash String
+  role         Role          @default(STUDENT)
+  isActive     Boolean       @default(true)
+  lastLogin    DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  cognitiveProfiles CognitiveProfile[]
+  crisisEscalations CrisisEscalation[]
+  auditLogs        AuditLog[]
+
+  @@index([schoolId])
+  @@index([role])
+  @@map("users")
+}
+
+// -------------------------------------------------------------
+// CHC Cognitive Domains & Profiles (Gf, Gv, Gwm, Gs)
+// -------------------------------------------------------------
+model ChcDomainWeight {
+  id           String   @id @default(uuid())
+  gfWeight     Float    @default(0.30) // Fluid Reasoning
+  gvWeight     Float    @default(0.25) // Visual-Spatial Processing
+  gwmWeight    Float    @default(0.25) // Working Memory
+  gsWeight     Float    @default(0.20) // Processing Speed
+  version      Int      @default(1)
+  calibratedBy String
+  updatedAt    DateTime @updatedAt
+
+  @@map("chc_domain_weights")
+}
+
+model CognitiveProfile {
+  id           String   @id @default(uuid())
+  studentId    String
+  student      User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolId     String
+  school       School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  gfScore      Float
+  gvScore      Float
+  gwmScore     Float
+  gsScore      Float
+  compositeIq  Float
+  riskLevel    String   @default("NORMAL") // LOW, NORMAL, AT_RISK, HIGH_PRIORITY
+  assessedAt   DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@map("cognitive_profiles")
+}
+
+// -------------------------------------------------------------
+// AI Chatbot Guardrails & Prompts
+// -------------------------------------------------------------
+model AiGuardrail {
+  id                   String   @id @default(uuid())
+  chatbotName          String   @default("CBT Counselor Bot")
+  isGuardrailActive    Boolean  @default(true)
+  systemPromptTemplate String   @db.Text
+  distressThreshold    Float    @default(0.75) // Trigger SOS above this threshold
+  sentimentSensitivity Float    @default(0.85)
+  maxTokenLimit        Int      @default(1024)
+  prohibitedKeywords   String   @db.Text // Comma separated
+  updatedAt            DateTime @updatedAt
+
+  @@map("ai_guardrails")
+}
+
+// -------------------------------------------------------------
+// Crisis Escalation Monitor (SOS Distress Triggers)
+// -------------------------------------------------------------
+model CrisisEscalation {
+  id              String        @id @default(uuid())
+  sessionId       String
+  studentId       String
+  student         User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolId        String
+  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  distressLevel   DistressLevel @default(HIGH)
+  triggerKeywords String
+  sentimentScore  Float
+  transcriptSnippet String      @db.Text
+  status          CrisisStatus  @default(OPEN)
+  overrideReason  String?
+  timestamp       DateTime      @default(now())
+
+  @@index([schoolId])
+  @@index([status])
+  @@map("crisis_escalations")
+}
+
+// -------------------------------------------------------------
+// FERPA / COPPA Immutable Audit Trail
+// -------------------------------------------------------------
+model AuditLog {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  schoolId  String?
+  school    School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  action    String
+  category  String   // FERPA_ACCESS, RBAC_CHANGE, TENANT_PROVISION, AI_GUARDRAIL_MOD, CRISIS_OVERRIDE
+  ipAddress String
+  userAgent String
+  details   String   @db.Text
+
+  @@index([actorId])
+  @@index([schoolId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
