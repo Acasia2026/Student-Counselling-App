@@ -5,7 +5,8 @@ const nextConfig = {
   async headers() {
     return [
       {
-        source: '/:path*',
+        // Apply security headers to application routes while excluding _next/static & internal Next.js assets
+        source: '/((?!_next/static|_next/image|favicon.ico).*)',
         headers: [
           {
             key: 'X-DNS-Prefetch-Control',
@@ -30,10 +31,6 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:5000;",
           },
         ],
       },

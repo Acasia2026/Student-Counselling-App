@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const superadminRoutes = require('./routes/superadmin');
+const adminStaffRoutes = require('./routes/adminStaff');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -10,34 +12,36 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 
 // 1. Helmet HTTP Security Headers
 app.use(helmet({
-  contentSecurityPolicy: false, // CSP managed at edge / Next.js
+  contentSecurityPolicy: false,
   crossOriginResourcePolicy: { policy: 'same-site' }
 }));
 
 // 2. Strict CORS Configuration
 app.use(cors({
   origin: [CORS_ORIGIN, 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-superadmin-key', 'x-demo-role'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-superadmin-key', 'x-admin-key', 'x-demo-role'],
   credentials: true
 }));
 
 // 3. Request Body Parsing Controls (Prevent Payload Flooding)
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 // 4. Health Check Endpoint
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     environment: process.env.NODE_ENV || 'development',
-    service: 'Multi-Tenant Student Counseling Superadmin Engine',
+    service: 'Multi-Tenant Student Counseling Superadmin & School Admin Engine',
     timestamp: new Date().toISOString()
   });
 });
 
-// 5. Mount RBAC Protected Superadmin Routes
+// 5. Mount Protected Routers
+app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/superadmin', superadminRoutes);
+app.use('/api/v1/admin/staff', adminStaffRoutes);
 
 // 6. 404 Fallback Handler
 app.use((req, res) => {

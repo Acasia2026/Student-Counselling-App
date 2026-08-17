@@ -154,6 +154,28 @@ router.get('/schools', (req, res) => {
   });
 });
 
+router.get('/schools/:id', (req, res) => {
+  const { id } = req.params;
+  const school = mockSchools.find(s => s.id === id);
+  if (!school) {
+    return res.status(404).json({ error: 'School tenant not found.' });
+  }
+
+  res.json({
+    school,
+    stats: {
+      activeCounselors: 14,
+      activeTeachers: 180,
+      aiSessionsThisMonth: 42100,
+      chcAverageScores: { gf: 112, gv: 108, gwm: 115, gs: 105 },
+      riskDistribution: { normal: 84, low: 10, atRisk: 6 },
+      recentSafetyAlerts: [
+        { id: 'CR-8821', studentName: 'Aarav Sharma (Gr 11)', distressLevel: 'SEVERE', timestamp: '2026-08-17 01:52', status: 'OPEN' }
+      ]
+    }
+  });
+});
+
 router.post('/schools', (req, res) => {
   const { name, domain, contactEmail, maxStudents, tier } = req.body;
   if (!name || !domain || !contactEmail) {

@@ -16,6 +16,12 @@ enum Role {
   STUDENT
 }
 
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+}
+
 enum TenantStatus {
   ACTIVE
   SUSPENDED
@@ -81,7 +87,7 @@ model Subscription {
   school       School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   tier         SubscriptionTier   @default(PREMIUM)
   status       SubscriptionStatus @default(ACTIVE)
-  billingCycle String             @default("ANNUAL") // MONTHLY or ANNUAL
+  billingCycle String             @default("ANNUAL")
   price        Float
   currency     String             @default("INR")
   startDate    DateTime           @default(now())
@@ -93,20 +99,28 @@ model Subscription {
 }
 
 // -------------------------------------------------------------
-// User Management & Isolation
+// User Management & Staff Directory (School Admin, Teachers, Counselors)
 // -------------------------------------------------------------
 model User {
-  id           String        @id @default(uuid())
-  schoolId     String?       // NULL for SUPERADMIN role
-  school       School?       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  name         String
-  email        String        @unique
-  passwordHash String
-  role         Role          @default(STUDENT)
-  isActive     Boolean       @default(true)
-  lastLogin    DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id                String      @id @default(uuid())
+  schoolId          String?     // NULL for SUPERADMIN
+  school            School?     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name              String
+  email             String      @unique
+  passwordHash      String?
+  phoneNumber       String?
+  department        String?     // e.g. Mathematics, Student Wellness, Humanities
+  role              Role        @default(STUDENT)
+  status            UserStatus  @default(PENDING)
+  invitationToken   String?
+  assignedClasses   Json?       // JSON array of class IDs / subjects e.g. ["Grade 10-A Math", "Grade 11-B AP Logic"]
+  isVerified        Boolean     @default(false)
+  parentConsent     Boolean     @default(false)
+  resetToken        String?
+  resetTokenExpires DateTime?
+  lastLogin         DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   cognitiveProfiles CognitiveProfile[]
   crisisEscalations CrisisEscalation[]
@@ -114,6 +128,7 @@ model User {
 
   @@index([schoolId])
   @@index([role])
+  @@index([status])
   @@map("users")
 }
 
@@ -122,10 +137,10 @@ model User {
 // -------------------------------------------------------------
 model ChcDomainWeight {
   id           String   @id @default(uuid())
-  gfWeight     Float    @default(0.30) // Fluid Reasoning
-  gvWeight     Float    @default(0.25) // Visual-Spatial Processing
-  gwmWeight    Float    @default(0.25) // Working Memory
-  gsWeight     Float    @default(0.20) // Processing Speed
+  gfWeight     Float    @default(0.30)
+  gvWeight     Float    @default(0.25)
+  gwmWeight    Float    @default(0.25)
+  gsWeight     Float    @default(0.20)
   version      Int      @default(1)
   calibratedBy String
   updatedAt    DateTime @updatedAt
@@ -144,7 +159,7 @@ model CognitiveProfile {
   gwmScore     Float
   gsScore      Float
   compositeIq  Float
-  riskLevel    String   @default("NORMAL") // LOW, NORMAL, AT_RISK, HIGH_PRIORITY
+  riskLevel    String   @default("NORMAL")
   assessedAt   DateTime @default(now())
 
   @@index([schoolId])
@@ -157,13 +172,13 @@ model CognitiveProfile {
 // -------------------------------------------------------------
 model AiGuardrail {
   id                   String   @id @default(uuid())
-  chatbotName          String   @default("CBT Counselor Bot")
+  chatbotName          String   @default("CBT Counselor Bot v4")
   isGuardrailActive    Boolean  @default(true)
   systemPromptTemplate String   @db.Text
-  distressThreshold    Float    @default(0.75) // Trigger SOS above this threshold
+  distressThreshold    Float    @default(0.75)
   sentimentSensitivity Float    @default(0.85)
   maxTokenLimit        Int      @default(1024)
-  prohibitedKeywords   String   @db.Text // Comma separated
+  prohibitedKeywords   String   @db.Text
   updatedAt            DateTime @updatedAt
 
   @@map("ai_guardrails")
@@ -173,19 +188,19 @@ model AiGuardrail {
 // Crisis Escalation Monitor (SOS Distress Triggers)
 // -------------------------------------------------------------
 model CrisisEscalation {
-  id              String        @id @default(uuid())
-  sessionId       String
-  studentId       String
-  student         User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  schoolId        String
-  school          School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  distressLevel   DistressLevel @default(HIGH)
-  triggerKeywords String
-  sentimentScore  Float
-  transcriptSnippet String      @db.Text
-  status          CrisisStatus  @default(OPEN)
-  overrideReason  String?
-  timestamp       DateTime      @default(now())
+  id                String        @id @default(uuid())
+  sessionId         String
+  studentId         String
+  student           User          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  schoolId          String
+  school            School        @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  distressLevel     DistressLevel @default(HIGH)
+  triggerKeywords   String
+  sentimentScore    Float
+  transcriptSnippet String        @db.Text
+  status            CrisisStatus  @default(OPEN)
+  overrideReason    String?
+  timestamp         DateTime      @default(now())
 
   @@index([schoolId])
   @@index([status])
@@ -203,7 +218,7 @@ model AuditLog {
   schoolId  String?
   school    School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
   action    String
-  category  String   // FERPA_ACCESS, RBAC_CHANGE, TENANT_PROVISION, AI_GUARDRAIL_MOD, CRISIS_OVERRIDE
+  category  String
   ipAddress String
   userAgent String
   details   String   @db.Text
