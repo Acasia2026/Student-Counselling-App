@@ -446,6 +446,8 @@ export default function SchoolAdminDashboard() {
   const [studentFilterGender, setStudentFilterGender] = useState('ALL');
   const [studentFilterStatus, setStudentFilterStatus] = useState('ALL');
   const [studentFilterYear, setStudentFilterYear] = useState('ALL');
+  const [studentFilterPerformance, setStudentFilterPerformance] = useState('ALL'); // ALL, HIGH, LOW
+  const [studentFilterAttendance, setStudentFilterAttendance] = useState('ALL');   // ALL, GOOD, LOW
 
   // Add Student state variables
   const [newStudentForm, setNewStudentForm] = useState({
@@ -453,6 +455,13 @@ export default function SchoolAdminDashboard() {
     admissionNumber: '', class: 'Grade 7', section: 'A', rollNumber: '', admissionYear: '2026',
     parentName: '', parentEmail: '', parentPhone: '',
     email: '', username: '', tempPassword: ''
+  });
+  const [studentCreationStep, setStudentCreationStep] = useState(1);
+  const [studentImportStep, setStudentImportStep] = useState(1);
+  const [selectedStudentProfile, setSelectedStudentProfile] = useState<any | null>(null);
+  const [studentProfileActiveTab, setStudentProfileActiveTab] = useState('overview'); // overview, performance, attendance, assignments, quizzes, activity, insights, account
+  const [moveStudentForm, setMoveStudentForm] = useState({
+    currentClass: '', currentSection: '', newClass: 'Grade 7', newSection: 'A'
   });
 
   // State Management for Teachers
@@ -791,14 +800,21 @@ export default function SchoolAdminDashboard() {
       class: newStudentForm.class,
       section: newStudentForm.section,
       parent: newStudentForm.parentName,
-      attendance: 100.0,
-      performance: 0.0, // Newly added
+      attendance: 95.5, // Default start values
+      performance: 80.0,
       status: 'ACTIVE',
       admissionYear: newStudentForm.admissionYear,
-      gender: newStudentForm.gender
+      gender: newStudentForm.gender,
+      dob: newStudentForm.dob || '2012-08-20',
+      parentEmail: newStudentForm.parentEmail,
+      parentPhone: newStudentForm.parentPhone,
+      email: newStudentForm.email,
+      username: newStudentForm.username,
+      rollNumber: newStudentForm.rollNumber || String(studentsList.length + 1)
     };
     setStudentsList([...studentsList, newStudent]);
     setCurrentModal(null);
+    setStudentCreationStep(1);
     triggerToast(`Student ${newStudent.name} successfully registered.`);
     // Reset Form
     setNewStudentForm({
@@ -807,6 +823,41 @@ export default function SchoolAdminDashboard() {
       parentName: '', parentEmail: '', parentPhone: '',
       email: '', username: '', tempPassword: ''
     });
+  };
+
+  const handleMoveStudent = (studentId: string) => {
+    setStudentsList(studentsList.map(s => {
+      if (s.id === studentId) {
+        return {
+          ...s,
+          class: moveStudentForm.newClass,
+          section: moveStudentForm.newSection
+        };
+      }
+      return s;
+    }));
+    if (selectedStudentProfile && selectedStudentProfile.id === studentId) {
+      setSelectedStudentProfile({
+        ...selectedStudentProfile,
+        class: moveStudentForm.newClass,
+        section: moveStudentForm.newSection
+      });
+    }
+    setCurrentModal(null);
+    triggerToast(`Student successfully moved to ${moveStudentForm.newClass} - ${moveStudentForm.newSection}.`);
+  };
+
+  const handleImportCsvSubmit = () => {
+    // Mock successful import of 3 students
+    const imported = [
+      { id: `STU-00${studentsList.length + 1}`, name: 'Rohan Deshmukh', admissionNo: 'ADM-2026-801', class: 'Grade 8', section: 'A', parent: 'Anil Deshmukh', attendance: 92.0, performance: 78.5, status: 'ACTIVE', admissionYear: '2026', gender: 'Male' },
+      { id: `STU-00${studentsList.length + 2}`, name: 'Sneha Gupta', admissionNo: 'ADM-2026-802', class: 'Grade 8', section: 'B', parent: 'Sanjay Gupta', attendance: 97.4, performance: 89.0, status: 'ACTIVE', admissionYear: '2026', gender: 'Female' },
+      { id: `STU-00${studentsList.length + 3}`, name: 'Aditya Sen', admissionNo: 'ADM-2026-803', class: 'Grade 9', section: 'A', parent: 'Rahul Sen', attendance: 79.5, performance: 58.0, status: 'ACTIVE', admissionYear: '2026', gender: 'Male' }
+    ];
+    setStudentsList([...studentsList, ...imported]);
+    setStudentImportStep(1);
+    setCurrentModal(null);
+    triggerToast('3 records imported successfully. 0 errors, 0 duplicates.', 'success');
   };
 
   const handleAddTeacherSubmit = (e: React.FormEvent) => {
@@ -1413,7 +1464,18 @@ export default function SchoolAdminDashboard() {
     const matchesGender = studentFilterGender === 'ALL' || s.gender === studentFilterGender;
     const matchesStatus = studentFilterStatus === 'ALL' || s.status === studentFilterStatus;
     const matchesYear = studentFilterYear === 'ALL' || s.admissionYear === studentFilterYear;
-    return matchesSearch && matchesClass && matchesSection && matchesGender && matchesStatus && matchesYear;
+    
+    // Performance criteria
+    const matchesPerf = studentFilterPerformance === 'ALL' ||
+      (studentFilterPerformance === 'HIGH' && s.performance >= 75) ||
+      (studentFilterPerformance === 'LOW' && s.performance < 75);
+
+    // Attendance criteria
+    const matchesAtt = studentFilterAttendance === 'ALL' ||
+      (studentFilterAttendance === 'GOOD' && s.attendance >= 85) ||
+      (studentFilterAttendance === 'LOW' && s.attendance < 85);
+
+    return matchesSearch && matchesClass && matchesSection && matchesGender && matchesStatus && matchesYear && matchesPerf && matchesAtt;
   });
 
   return (
@@ -2258,169 +2320,827 @@ export default function SchoolAdminDashboard() {
           {/* ======================================================= */}
           {/* USER MANAGEMENT TABS                                    */}
           {/* ======================================================= */}
-          {activeMenu === 'users' && activeSubMenu === 'students' && (
-            <div className="space-y-6">
-              
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900">Student Directory</h2>
-                  <p className="text-slate-500 text-xs">Manage enrolled school student directories and profiles.</p>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => triggerToast('Student profile exports generated (PDF/CSV).')} className="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2">
-                    <Download className="w-4 h-4" /> Import / Export
-                  </button>
-                  <button onClick={() => setCurrentModal('createStudent')} className="bg-[#4F46E5] text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2">
-                    <Plus className="w-4 h-4" /> Add Student
-                  </button>
-                </div>
-              </div>
-
-              {/* Student Filter Bar */}
-              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-6 gap-3">
-                <div className="relative sm:col-span-2">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by name, admission no..."
-                    value={studentSearch}
-                    onChange={(e) => setStudentSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-400"
-                  />
-                </div>
-                <div>
-                  <select value={studentFilterClass} onChange={(e) => setStudentFilterClass(e.target.value)} className="w-full py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold">
-                    <option value="ALL">All Classes</option>
-                    <option value="Grade 7">Grade 7</option>
-                    <option value="Grade 8">Grade 8</option>
-                    <option value="Grade 9">Grade 9</option>
-                    <option value="Grade 12">Grade 12</option>
-                  </select>
-                </div>
-                <div>
-                  <select value={studentFilterSection} onChange={(e) => setStudentFilterSection(e.target.value)} className="w-full py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold">
-                    <option value="ALL">All Sections</option>
-                    <option value="A">Section A</option>
-                    <option value="B">Section B</option>
-                  </select>
-                </div>
-                <div>
-                  <select value={studentFilterStatus} onChange={(e) => setStudentFilterStatus(e.target.value)} className="w-full py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold">
-                    <option value="ALL">All Status</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
-                  </select>
-                </div>
-                <div>
-                  <select value={studentFilterYear} onChange={(e) => setStudentFilterYear(e.target.value)} className="w-full py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold">
-                    <option value="ALL">All Years</option>
-                    <option value="2024">2024</option>
-                    <option value="2025">2025</option>
-                    <option value="2026">2026</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Bulk Actions Header */}
-              {selectedStudentIds.length > 0 && (
-                <div className="bg-indigo-50 border border-indigo-100 px-4 py-3 rounded-2xl flex items-center justify-between animate-fadeIn">
-                  <span className="text-xs font-bold text-indigo-800">{selectedStudentIds.length} students selected</span>
-                  <div className="flex gap-2">
-                    <button onClick={handleBulkNotify} className="bg-[#4F46E5] text-white text-xs font-bold px-3 py-1.5 rounded-lg">Send Notification</button>
-                    <button onClick={handleBulkDeactivate} className="bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg">Deactivate Profile</button>
+          {activeMenu === 'users' && activeSubMenu === 'students' && (() => {
+            const totalEnrolled = studentsList.length + 2834; // Relative to the mock summary value 2,840
+            const activeStudents = studentsList.filter(s => s.status === 'ACTIVE').length + 2710;
+            const avgScore = 78.6;
+            
+            return (
+              <div className="space-y-6 animate-fadeIn">
+                
+                {/* ── Page Header ──────────────────────────────────────── */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-5">
+                  <div>
+                    <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Students Directory</h2>
+                    <p className="text-slate-500 text-xs">Manage student profiles, academic records and learning activity.</p>
+                  </div>
+                  <div className="flex items-center gap-2.5 self-stretch sm:self-auto flex-wrap">
+                    <select onChange={(e) => {
+                      triggerToast(`Exporting filtered directory as ${e.target.value}...`);
+                      e.target.value = '';
+                    }} className="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded-xl shadow-sm outline-none">
+                      <option value="">Export Format</option>
+                      <option value="CSV">Export CSV</option>
+                      <option value="Excel">Export Excel</option>
+                      <option value="PDF">Export PDF</option>
+                    </select>
+                    <button onClick={() => { setStudentImportStep(1); setCurrentModal('importStudents'); }} className="bg-white border border-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm shrink-0">
+                      <Download className="w-3.5 h-3.5" /> <span>Import Students</span>
+                    </button>
+                    <button onClick={() => { setStudentCreationStep(1); setCurrentModal('createStudent'); }} className="bg-[#4F46E5] hover:bg-[#7C3AED] text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shrink-0">
+                      <Plus className="w-4 h-4" /> <span>+ Add Student</span>
+                    </button>
                   </div>
                 </div>
-              )}
 
-              {/* Student Table */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-400 uppercase">
-                        <th className="p-4 w-12 text-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0}
-                            onChange={() => {
-                              if (selectedStudentIds.length === filteredStudents.length) {
-                                setSelectedStudentIds([]);
-                              } else {
-                                setSelectedStudentIds(filteredStudents.map(s => s.id));
-                              }
-                            }}
-                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 accent-indigo-600"
-                          />
-                        </th>
-                        <th className="p-4">Student Name</th>
-                        <th className="p-4">Admission Number</th>
-                        <th className="p-4">Class</th>
-                        <th className="p-4">Parent</th>
-                        <th className="p-4">Attendance</th>
-                        <th className="p-4">Avg Score</th>
-                        <th className="p-4">Status</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-xs">
-                      {filteredStudents.map(student => (
-                        <tr key={student.id} className="hover:bg-slate-50/50">
-                          <td className="p-4 text-center">
+                {/* ── Summary Cards ────────────────────────────────────── */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { label: 'Total Students', value: String(totalEnrolled), sub: 'Enrolled in current term', icon: GraduationCap, color: 'text-indigo-600 bg-indigo-50' },
+                    { label: 'Active Students', value: String(activeStudents), sub: 'Active accounts', icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50' },
+                    { label: 'New Admissions', value: '126', sub: 'Joined this academic term', icon: Sparkles, color: 'text-cyan-600 bg-cyan-50' },
+                    { label: 'Average Performance', value: `${avgScore}%`, sub: 'School average index', icon: FileSpreadsheet, color: 'text-purple-600 bg-purple-50' }
+                  ].map((c, i) => {
+                    const IC = c.icon;
+                    return (
+                      <div key={i} className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4 hover:shadow-md transition-all">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${c.color}`}><IC className="w-5 h-5" /></div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{c.label}</span>
+                          <h4 className="text-lg font-extrabold text-slate-900 tracking-tight mt-0.5">{c.value}</h4>
+                          <span className="text-[9px] text-slate-400 font-medium">{c.sub}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ── Search & Filter Toolbar ─────────────────────────── */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-6 gap-3">
+                    <div className="relative sm:col-span-2">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search student name, admission no or roll..."
+                        value={studentSearch}
+                        onChange={(e) => setStudentSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:border-indigo-400 focus:bg-white"
+                      />
+                    </div>
+                    <div>
+                      <select value={studentFilterClass} onChange={(e) => setStudentFilterClass(e.target.value)} className="w-full py-2 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none">
+                        <option value="ALL">All Classes</option>
+                        <option value="Grade 7">Grade 7</option>
+                        <option value="Grade 8">Grade 8</option>
+                        <option value="Grade 9">Grade 9</option>
+                        <option value="Grade 12">Grade 12</option>
+                      </select>
+                    </div>
+                    <div>
+                      <select value={studentFilterSection} onChange={(e) => setStudentFilterSection(e.target.value)} className="w-full py-2 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none">
+                        <option value="ALL">All Sections</option>
+                        <option value="A">Section A</option>
+                        <option value="B">Section B</option>
+                      </select>
+                    </div>
+                    <div>
+                      <select value={studentFilterGender} onChange={(e) => setStudentFilterGender(e.target.value)} className="w-full py-2 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none">
+                        <option value="ALL">All Genders</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <select value={studentFilterStatus} onChange={(e) => setStudentFilterStatus(e.target.value)} className="w-full py-2 px-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-600 outline-none">
+                        <option value="ALL">All Status</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="INACTIVE">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-1 border-t border-slate-100 mt-2">
+                    <div>
+                      <label className="block mb-1 text-[9px] text-slate-400 uppercase font-bold">Admission Year</label>
+                      <select value={studentFilterYear} onChange={(e) => setStudentFilterYear(e.target.value)} className="w-full py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600">
+                        <option value="ALL">All Years</option>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-[9px] text-slate-400 uppercase font-bold">Academic Performance</label>
+                      <select value={studentFilterPerformance} onChange={(e) => setStudentFilterPerformance(e.target.value)} className="w-full py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600">
+                        <option value="ALL">All Performances</option>
+                        <option value="HIGH">High Performing (&gt;= 75%)</option>
+                        <option value="LOW">Needs Attention (&lt; 75%)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-[9px] text-slate-400 uppercase font-bold">Attendance Index</label>
+                      <select value={studentFilterAttendance} onChange={(e) => setStudentFilterAttendance(e.target.value)} className="w-full py-1.5 px-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600">
+                        <option value="ALL">All Attendance</option>
+                        <option value="GOOD">Good Attendance (&gt;= 85%)</option>
+                        <option value="LOW">Low Attendance (&lt; 85%)</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end justify-end">
+                      <button onClick={() => {
+                        setStudentSearch('');
+                        setStudentFilterClass('ALL');
+                        setStudentFilterSection('ALL');
+                        setStudentFilterGender('ALL');
+                        setStudentFilterStatus('ALL');
+                        setStudentFilterYear('ALL');
+                        setStudentFilterPerformance('ALL');
+                        setStudentFilterAttendance('ALL');
+                        triggerToast('Directory filters reset.');
+                      }} className="text-slate-400 hover:text-slate-600 text-xs font-bold py-1">Reset Filters</button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Bulk Actions Header ──────────────────────────────── */}
+                {selectedStudentIds.length > 0 && (
+                  <div className="bg-indigo-50 border border-indigo-100 px-5 py-3 rounded-2xl flex items-center justify-between animate-fadeIn shadow-sm">
+                    <span className="text-xs font-bold text-indigo-800">{selectedStudentIds.length} students selected</span>
+                    <div className="flex gap-2 text-xs font-bold">
+                      <button onClick={() => {
+                        setMoveStudentForm({ currentClass: '', currentSection: '', newClass: 'Grade 7', newSection: 'A' });
+                        setCurrentModal('moveStudentBulk');
+                      }} className="bg-white border border-slate-200 text-slate-700 px-3.5 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">Assign Class</button>
+                      <button onClick={handleBulkNotify} className="bg-[#4F46E5] text-white px-3.5 py-1.5 rounded-xl hover:bg-indigo-600 transition-colors">Send Notification</button>
+                      <button onClick={handleBulkDeactivate} className="bg-red-550 bg-red-600 text-white px-3.5 py-1.5 rounded-xl hover:bg-red-700 transition-colors">Deactivate Profile</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Student Data Table ───────────────────────────────── */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-400 uppercase font-bold text-[9px] tracking-wider">
+                          <th className="p-4 w-12 text-center">
                             <input
                               type="checkbox"
-                              checked={selectedStudentIds.includes(student.id)}
-                              onChange={() => handleToggleStudentSelection(student.id)}
+                              checked={selectedStudentIds.length === filteredStudents.length && filteredStudents.length > 0}
+                              onChange={() => {
+                                if (selectedStudentIds.length === filteredStudents.length) {
+                                  setSelectedStudentIds([]);
+                                } else {
+                                  setSelectedStudentIds(filteredStudents.map(s => s.id));
+                                }
+                              }}
                               className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 accent-indigo-600"
                             />
-                          </td>
-                          <td className="p-4 font-bold text-slate-900">{student.name}</td>
-                          <td className="p-4 font-mono text-slate-500">{student.admissionNo}</td>
-                          <td className="p-4 font-semibold">{student.class} - {student.section}</td>
-                          <td className="p-4 text-slate-500">{student.parent}</td>
-                          <td className="p-4 font-bold text-slate-700">{student.attendance}%</td>
-                          <td className="p-4">
-                            <span className={`font-bold px-2 py-0.5 rounded ${
-                              student.performance < 65 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'
-                            }`}>{student.performance}%</span>
-                          </td>
-                          <td className="p-4">
-                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              student.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                            }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${student.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                              {student.status}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right space-x-2">
-                            <button
-                              onClick={() => {
-                                setSelectedStudentRec(student.name);
-                                setActiveMenu('aiIntelligence');
-                                setActiveSubMenu('recommendations');
-                              }}
-                              className="text-[#4F46E5] hover:underline font-bold"
-                            >
-                              View Insight
-                            </button>
-                            <button
-                              onClick={() => {
-                                setStudentsList(studentsList.map(s => s.id === student.id ? { ...s, status: s.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } : s));
-                                triggerToast('Student status toggled.');
-                              }}
-                              className="text-slate-400 hover:text-red-500"
-                            >
-                              Toggle
-                            </button>
-                          </td>
+                          </th>
+                          <th className="p-4">Student</th>
+                          <th className="p-4">Admission Number</th>
+                          <th className="p-4">Class</th>
+                          <th className="p-4">Attendance</th>
+                          <th className="p-4">Average Score</th>
+                          <th className="p-4">Learning Activity</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredStudents.map(student => {
+                          const initials = student.name.split(' ').map((n: string) => n[0]).join('');
+                          // Dynamic learning activity status mock
+                          const activityVal = student.attendance > 92 ? 'High Activity' : student.attendance > 85 ? 'Medium' : 'Low Activity';
+                          const activityColor = activityVal === 'High Activity' ? 'text-emerald-600 bg-emerald-50' : activityVal === 'Medium' ? 'text-cyan-600 bg-cyan-50' : 'text-orange-600 bg-orange-50';
+                          
+                          return (
+                            <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="p-4 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedStudentIds.includes(student.id)}
+                                  onChange={() => handleToggleStudentSelection(student.id)}
+                                  className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 accent-indigo-600"
+                                />
+                              </td>
+                              <td className="p-4 flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-indigo-50 text-[#4F46E5] font-extrabold flex items-center justify-center text-[10px] uppercase shadow-inner">
+                                  {initials}
+                                </div>
+                                <div>
+                                  <button onClick={() => { setSelectedStudentProfile(student); setStudentProfileActiveTab('overview'); }} className="font-extrabold text-slate-800 hover:text-[#4F46E5] text-left block hover:underline leading-tight">{student.name}</button>
+                                  <span className="text-[10px] text-slate-400 font-semibold mt-0.5 block">{student.class} - {student.section}</span>
+                                </div>
+                              </td>
+                              <td className="p-4 font-mono text-slate-500">{student.admissionNo}</td>
+                              <td className="p-4 font-semibold text-slate-700">{student.class} - {student.section}</td>
+                              <td className="p-4 font-extrabold text-slate-700">{student.attendance}%</td>
+                              <td className="p-4">
+                                <span className={`font-extrabold px-2 py-0.5 rounded ${
+                                  student.performance < 75 ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'
+                                }`}>{student.performance}%</span>
+                              </td>
+                              <td className="p-4">
+                                <span className={`px-2 py-0.5 rounded-[6px] text-[10px] font-bold ${activityColor}`}>{activityVal}</span>
+                              </td>
+                              <td className="p-4">
+                                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                  student.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                                }`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${student.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                  {student.status}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <select
+                                  onChange={(e) => {
+                                    if (e.target.value === 'profile') {
+                                      setSelectedStudentProfile(student);
+                                      setStudentProfileActiveTab('overview');
+                                    } else if (e.target.value === 'move') {
+                                      setMoveStudentForm({
+                                        currentClass: student.class,
+                                        currentSection: student.section,
+                                        newClass: student.class,
+                                        newSection: student.section
+                                      });
+                                      setCurrentModal(`move-${student.id}`);
+                                    } else if (e.target.value === 'toggleStatus') {
+                                      setStudentsList(studentsList.map(s => s.id === student.id ? { ...s, status: s.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } : s));
+                                      triggerToast(`Student account status toggled for ${student.name}`);
+                                    }
+                                    e.target.value = '';
+                                  }}
+                                  className="py-1 px-2 border rounded-xl outline-none font-bold text-slate-500 bg-white"
+                                >
+                                  <option value="">Actions</option>
+                                  <option value="profile">View Profile</option>
+                                  <option value="move">Move Class</option>
+                                  <option value="toggleStatus">Toggle Account Status</option>
+                                </select>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  {filteredStudents.length === 0 && (
+                    <div className="text-center py-10">
+                      <GraduationCap className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                      <h4 className="text-sm font-extrabold text-slate-800">No students found.</h4>
+                      <p className="text-slate-400 text-xs mt-1">Try changing your search or filters.</p>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-            </div>
-          )}
+                {/* ── Student Profile Detailed Modal/Drawer ──────────────── */}
+                {selectedStudentProfile && (
+                  <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex justify-end animate-fadeIn">
+                    <div className="absolute inset-0" onClick={() => setSelectedStudentProfile(null)} />
+                    <div className="relative w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col z-50 overflow-hidden animate-slideLeft">
+                      
+                      {/* Profile Header */}
+                      <div className="bg-slate-50 border-b p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shrink-0">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-full bg-indigo-100 text-[#4F46E5] font-extrabold text-base flex items-center justify-center shadow-inner">
+                            {selectedStudentProfile.name.split(' ').map((n: string) => n[0]).join('')}
+                          </div>
+                          <div>
+                            <h3 className="text-base font-extrabold text-slate-900 leading-tight">{selectedStudentProfile.name}</h3>
+                            <span className="text-xs text-slate-400 font-semibold block mt-0.5">Admission Number: {selectedStudentProfile.admissionNo} • Class {selectedStudentProfile.class}</span>
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-bold mt-1.5 ${
+                              selectedStudentProfile.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${selectedStudentProfile.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                              {selectedStudentProfile.status}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 self-stretch sm:self-auto text-xs font-bold">
+                          <button onClick={() => {
+                            setMoveStudentForm({ currentClass: selectedStudentProfile.class, currentSection: selectedStudentProfile.section, newClass: selectedStudentProfile.class, newSection: selectedStudentProfile.section });
+                            setCurrentModal(`move-${selectedStudentProfile.id}`);
+                          }} className="bg-white border px-3.5 py-1.5 rounded-xl hover:bg-slate-100 transition-colors">Move Class</button>
+                          <button onClick={() => {
+                            setStudentsList(studentsList.map(s => s.id === selectedStudentProfile.id ? { ...s, status: s.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE' } : s));
+                            setSelectedStudentProfile(null);
+                            triggerToast('Student profile account toggled successfully.');
+                          }} className="bg-red-50 hover:bg-red-100 text-red-600 px-3.5 py-1.5 rounded-xl transition-colors">Deactivate Account</button>
+                          <button onClick={() => setSelectedStudentProfile(null)} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400"><X className="w-5 h-5" /></button>
+                        </div>
+                      </div>
+
+                      {/* Profile Nav Tabs */}
+                      <div className="bg-white border-b px-6 flex gap-4 overflow-x-auto scrollbar-none shrink-0 text-xs font-bold text-slate-400">
+                        {[
+                          { id: 'overview', label: 'Overview' },
+                          { id: 'performance', label: 'Academic Performance' },
+                          { id: 'attendance', label: 'Attendance' },
+                          { id: 'assignments', label: 'Assignments' },
+                          { id: 'quizzes', label: 'Quizzes' },
+                          { id: 'activity', label: 'Learning Activity' },
+                          { id: 'insights', label: 'AI Insights' },
+                          { id: 'account', label: 'Account' }
+                        ].map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => setStudentProfileActiveTab(t.id)}
+                            className={`py-3.5 border-b-2 whitespace-nowrap transition-colors ${studentProfileActiveTab === t.id ? 'border-[#4F46E5] text-[#4F46E5]' : 'border-transparent hover:text-slate-700'}`}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Profile Scrollable Content Area */}
+                      <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs font-semibold text-slate-600">
+
+                        {/* OVERVIEW TAB */}
+                        {studentProfileActiveTab === 'overview' && (
+                          <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-slate-50 border p-3.5 rounded-2xl">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Academic Record Parameters</span>
+                                <div className="mt-2 space-y-1.5">
+                                  <div>Roll Number: <strong className="text-slate-800">{selectedStudentProfile.rollNumber || '04'}</strong></div>
+                                  <div>Academic Year: <strong className="text-slate-800">2026–2027</strong></div>
+                                  <div>Admission Date: <strong className="text-slate-800">12 April {selectedStudentProfile.admissionYear || '2025'}</strong></div>
+                                </div>
+                              </div>
+                              <div className="bg-slate-50 border p-3.5 rounded-2xl">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Parent / Guardian details</span>
+                                <div className="mt-2 space-y-1.5">
+                                  <div>Parent Name: <strong className="text-slate-800">{selectedStudentProfile.parent}</strong></div>
+                                  <div>Contact Email: <strong className="text-slate-800">{selectedStudentProfile.parentEmail || 'parent.verification@gmail.com'}</strong></div>
+                                  <div>Phone: <strong className="text-slate-800">{selectedStudentProfile.parentPhone || '+91 98765 43210'}</strong></div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Summary Metrics */}
+                            <div className="grid grid-cols-4 gap-3 text-center">
+                              {[
+                                { val: `${selectedStudentProfile.performance}%`, label: 'Average Score', color: 'text-indigo-600' },
+                                { val: `${selectedStudentProfile.attendance}%`, label: 'Attendance Rate', color: 'text-emerald-600' },
+                                { val: '92%', label: 'Assignments Comp.', color: 'text-cyan-600' },
+                                { val: '7 Days', label: 'Streak Status', color: 'text-amber-500' }
+                              ].map((m, i) => (
+                                <div key={i} className="bg-slate-50 border p-3 rounded-2xl">
+                                  <strong className={`text-base font-extrabold block ${m.color}`}>{m.val}</strong>
+                                  <span className="text-[9px] text-slate-400 mt-1 block font-medium">{m.label}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ACADEMIC PERFORMANCE TAB */}
+                        {studentProfileActiveTab === 'performance' && (
+                          <div className="space-y-5">
+                            <div className="bg-slate-50 p-4 border rounded-2xl flex justify-between items-center">
+                              <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Overall performance index</span>
+                                <strong className="text-lg font-extrabold text-slate-800 mt-1 block">{selectedStudentProfile.performance}%</strong>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[9px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold">Strongest: Science</span>
+                                <span className="text-[9px] text-red-600 bg-red-50 px-2 py-0.5 rounded font-bold block mt-1.5">Needs Work: Algebra</span>
+                              </div>
+                            </div>
+
+                            {/* Subject Performance */}
+                            <div className="space-y-3">
+                              <h4 className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Subject-wise Mastery Indicators</h4>
+                              {[
+                                { name: 'Mathematics', score: 78 },
+                                { name: 'Science', score: 86 },
+                                { name: 'English', score: 84 },
+                                { name: 'Social Science', score: 80 }
+                              ].map(sub => (
+                                <div key={sub.name} className="space-y-1">
+                                  <div className="flex justify-between text-[11px] font-bold">
+                                    <span>{sub.name}</span>
+                                    <span>{sub.score}%</span>
+                                  </div>
+                                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${sub.score}%` }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ATTENDANCE TAB */}
+                        {studentProfileActiveTab === 'attendance' && (
+                          <div className="space-y-5">
+                            <div className="grid grid-cols-3 gap-3 text-center">
+                              <div className="bg-emerald-50 text-emerald-800 p-3.5 border border-emerald-100 rounded-2xl">
+                                <strong className="text-lg font-extrabold block">94%</strong>
+                                <span className="text-[9px] uppercase tracking-wider font-bold">Present days</span>
+                              </div>
+                              <div className="bg-red-50 text-red-850 text-red-800 p-3.5 border border-red-100 rounded-2xl">
+                                <strong className="text-lg font-extrabold block">4%</strong>
+                                <span className="text-[9px] uppercase tracking-wider font-bold">Absent days</span>
+                              </div>
+                              <div className="bg-amber-50 text-amber-800 p-3.5 border border-amber-100 rounded-2xl">
+                                <strong className="text-lg block font-extrabold">2%</strong>
+                                <span className="text-[9px] uppercase tracking-wider font-bold">Late entry</span>
+                              </div>
+                            </div>
+
+                            {/* Calendar Days Visual Mock */}
+                            <div className="bg-white border rounded-2xl p-4.5 space-y-3.5">
+                              <strong className="text-xs text-slate-800 block">August 2026 Monthly Grid</strong>
+                              <div className="grid grid-cols-7 gap-1 text-center text-[10px]">
+                                {Array.from({ length: 31 }, (_, i) => {
+                                  const dayNo = i + 1;
+                                  const isAbsent = dayNo === 4 || dayNo === 19;
+                                  const isLate = dayNo === 12;
+                                  const color = isAbsent ? 'bg-red-100 text-red-700' : isLate ? 'bg-amber-100 text-amber-700' : 'bg-emerald-50 text-emerald-700';
+                                  return (
+                                    <div key={dayNo} className={`p-2 rounded font-bold ${color}`} title={isAbsent ? 'Absent' : isLate ? 'Late' : 'Present'}>{dayNo}</div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ASSIGNMENTS TAB */}
+                        {studentProfileActiveTab === 'assignments' && (
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center text-[11px] font-bold">
+                              <span>Completion Rate</span>
+                              <span>92% (12 / 13 Assignments)</span>
+                            </div>
+                            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="bg-emerald-500 h-full rounded-full" style={{ width: '92%' }} />
+                            </div>
+
+                            <table className="w-full text-[11px] mt-4">
+                              <thead>
+                                <tr className="border-b text-slate-400 font-bold uppercase text-[9px]">
+                                  <th className="pb-2">Assignment Title</th>
+                                  <th className="pb-2">Subject</th>
+                                  <th className="pb-2">Due Date</th>
+                                  <th className="pb-2 text-right">Status</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[
+                                  { title: 'Linear Equations practice set', sub: 'Mathematics', date: '2026-08-25', status: 'Completed' },
+                                  { title: 'Chemical Reactions journal', sub: 'Science', date: '2026-08-22', status: 'Reviewed (85%)' },
+                                  { title: 'Tenses assessment draft', sub: 'English', date: '2026-08-18', status: 'Late Submit (70%)' }
+                                ].map((asm, idx) => (
+                                  <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50">
+                                    <td className="py-2.5 font-bold text-slate-800">{asm.title}</td>
+                                    <td className="py-2.5 text-slate-400">{asm.sub}</td>
+                                    <td className="py-2.5 font-mono text-[10px]">{asm.date}</td>
+                                    <td className="py-2.5 text-right font-bold text-[#4F46E5]">{asm.status}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        {/* QUIZZES TAB */}
+                        {studentProfileActiveTab === 'quizzes' && (
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center text-[11px] font-bold">
+                              <span>Quiz Average Score</span>
+                              <span>81.0% (Overall Improvement +8%)</span>
+                            </div>
+
+                            <table className="w-full text-[11px] mt-2">
+                              <thead>
+                                <tr className="border-b text-slate-400 font-bold uppercase text-[9px]">
+                                  <th className="pb-2">Assessment Quiz</th>
+                                  <th className="pb-2">Topic</th>
+                                  <th className="pb-2">Date</th>
+                                  <th className="pb-2 text-right">Score</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[
+                                  { title: 'Algebra Mastery Test 1', topic: 'Algebra', date: '18 Aug', score: '72%' },
+                                  { title: 'Rational Numbers practice quiz', topic: 'Fractions', date: '12 Aug', score: '90%' },
+                                  { title: 'Forces & Laws of Motion quiz', topic: 'Physics', date: '05 Aug', score: '81%' }
+                                ].map((qz, idx) => (
+                                  <tr key={idx} className="border-b last:border-0 hover:bg-slate-50/50">
+                                    <td className="py-2.5 font-bold text-slate-800">{qz.title}</td>
+                                    <td className="py-2.5 text-slate-400">{qz.topic}</td>
+                                    <td className="py-2.5 font-mono">{qz.date}</td>
+                                    <td className="py-2.5 text-right font-extrabold text-emerald-600">{qz.score}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
+                        {/* LEARNING ACTIVITY TAB */}
+                        {studentProfileActiveTab === 'activity' && (
+                          <div className="space-y-5">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="bg-slate-50 border p-3 rounded-xl">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">Lessons Completed</span>
+                                <strong className="text-base font-extrabold text-slate-800 mt-1 block">18 Lessons</strong>
+                              </div>
+                              <div className="bg-slate-50 border p-3 rounded-xl">
+                                <span className="text-[10px] text-slate-400 uppercase font-bold block">AI Tutor sessions</span>
+                                <strong className="text-base font-extrabold text-slate-800 mt-1 block">24 Sessions</strong>
+                              </div>
+                            </div>
+
+                            {/* Recent stream activity logs */}
+                            <div className="space-y-3.5">
+                              <h4 className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Recent Learning Activity Logs</h4>
+                              {[
+                                { act: 'AI Tutor Session completed: Practice Rational Numbers', sub: 'Mathematics', when: 'Today' },
+                                { act: 'Lesson video completed: Chemical Reactions intro', sub: 'Science', when: 'Yesterday' },
+                                { act: 'Interactive Activity score verified', sub: 'English', when: '2 days ago' }
+                              ].map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center bg-slate-50/50 p-2.5 rounded-xl border">
+                                  <div>
+                                    <strong className="text-slate-800 block text-[11px]">{item.act}</strong>
+                                    <span className="text-[9px] text-slate-400 mt-0.5 block">{item.sub}</span>
+                                  </div>
+                                  <span className="text-[10px] text-slate-400 font-mono">{item.when}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* AI INSIGHTS TAB */}
+                        {studentProfileActiveTab === 'insights' && (
+                          <div className="space-y-5">
+                            <div className="bg-gradient-to-br from-indigo-50/30 to-purple-50/20 p-4 border border-indigo-50 rounded-2xl space-y-3">
+                              <div className="flex justify-between items-center border-b pb-2.5 border-slate-100">
+                                <strong className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                                  <Brain className="w-4 h-4 text-[#7C3AED]" />
+                                  AI Cognitive Insights Profile
+                                </strong>
+                                <span className="text-[9px] text-[#7C3AED] bg-indigo-50 px-2 py-0.5 rounded font-extrabold">92% Confidence</span>
+                              </div>
+                              
+                              <div className="space-y-3 leading-relaxed">
+                                <div className="flex gap-2">
+                                  <span className="bg-emerald-100 text-emerald-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0">Strength</span>
+                                  <span className="text-[11px] text-slate-600">Student shows strong performance in Science (Biology, Chemistry).</span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="bg-red-100 text-red-800 text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0">Attention Required</span>
+                                  <span className="text-[11px] text-slate-600">Algebra accuracy is below the student&apos;s overall Mathematics performance.</span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <span className="bg-indigo-100 text-[#4F46E5] text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0">Recommendation</span>
+                                  <span className="text-[11px] text-slate-600">Additional Algebra practice is recommended before next term exams.</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Topic Mastery Bars */}
+                            <div className="space-y-3">
+                              <strong className="text-xs text-slate-800 block">Topic Mastery breakdown</strong>
+                              {[
+                                { topic: 'Fractions', score: 82 },
+                                { topic: 'Algebra', score: 54 },
+                                { topic: 'Geometry', score: 76 }
+                              ].map(top => (
+                                <div key={top.topic} className="space-y-1">
+                                  <div className="flex justify-between text-[10px] font-bold">
+                                    <span>{top.topic}</span>
+                                    <span>{top.score}%</span>
+                                  </div>
+                                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${top.score}%` }} />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ACCOUNT TAB */}
+                        {studentProfileActiveTab === 'account' && (
+                          <div className="space-y-4">
+                            <div className="bg-slate-50 border p-4.5 rounded-2xl space-y-3 text-[11px]">
+                              <strong className="text-xs font-bold text-slate-800 block">Student Account status details</strong>
+                              <div>Username: <span className="font-mono text-slate-800">aarav_sharma_xavier</span></div>
+                              <div>Student Corporate Email: <span className="font-mono text-slate-800">aarav.sharma@stxavier.edu.in</span></div>
+                              <div>Last Login: <span className="font-mono text-slate-400">20 Aug 2026 14:05</span></div>
+                            </div>
+
+                            <div className="pt-2 flex flex-wrap gap-2.5">
+                              <button onClick={() => triggerToast('Login details reset and dispatched to parent.')} className="px-4 py-2 border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors">Reset Password</button>
+                              <button onClick={() => triggerToast('Login details sent to parent email address.')} className="px-4 py-2 border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors">Send Login Details</button>
+                            </div>
+                          </div>
+                        )}
+
+                      </div>
+                      
+                      {/* Profile Footer */}
+                      <div className="p-4 border-t bg-slate-50 shrink-0 flex justify-end gap-2 text-xs font-bold">
+                        <button onClick={() => setSelectedStudentProfile(null)} className="px-4 py-2 border bg-white rounded-xl text-slate-700 hover:bg-slate-100 transition-colors">Close Profile</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Modal: Move student class dialog ───────────────────── */}
+                {studentsList.map(st => {
+                  const modalId = `move-${st.id}`;
+                  if (currentModal !== modalId) return null;
+                  return (
+                    <div key={st.id} className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-md overflow-hidden animate-zoomIn">
+                        <div className="p-5 border-b flex justify-between items-center bg-slate-50">
+                          <h3 className="text-sm font-extrabold text-slate-900">Move Student Class</h3>
+                          <button onClick={() => setCurrentModal(null)} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400"><X className="w-4 h-4" /></button>
+                        </div>
+                        <div className="p-5 space-y-4 text-xs font-semibold text-slate-700">
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                            <span className="text-[10px] text-amber-800 leading-relaxed font-semibold">Warning: Moving this student will update their academic assignment and related class records.</span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <span className="text-[9px] text-slate-400 uppercase font-bold block">Current class parameters</span>
+                              <strong className="text-slate-800 block text-xs mt-1">{st.class} - {st.section}</strong>
+                            </div>
+                            <div>
+                              <span className="text-[9px] text-slate-400 uppercase font-bold block">Student Roll Number</span>
+                              <strong className="text-slate-800 block text-xs mt-1">{st.rollNumber || '04'}</strong>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block mb-1">Select New Class Level</label>
+                              <select value={moveStudentForm.newClass} onChange={e => setMoveStudentForm({ ...moveStudentForm, newClass: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                                <option value="Grade 7">Grade 7</option>
+                                <option value="Grade 8">Grade 8</option>
+                                <option value="Grade 9">Grade 9</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block mb-1">Select New Section</label>
+                              <select value={moveStudentForm.newSection} onChange={e => setMoveStudentForm({ ...moveStudentForm, newSection: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="pt-4 border-t flex justify-end gap-2 text-xs font-bold">
+                            <button onClick={() => setCurrentModal(null)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl">Cancel</button>
+                            <button onClick={() => handleMoveStudent(st.id)} className="bg-[#4F46E5] hover:bg-indigo-600 text-white px-5 py-2 rounded-xl shadow-md">Confirm Move Class</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* ── Modal: Bulk Assign Class dialog ───────────────────── */}
+                {currentModal === 'moveStudentBulk' && (
+                  <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-md overflow-hidden animate-zoomIn">
+                      <div className="p-5 border-b flex justify-between items-center bg-slate-50">
+                        <h3 className="text-sm font-extrabold text-slate-900">Bulk Reassign Classes</h3>
+                        <button onClick={() => setCurrentModal(null)} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400"><X className="w-4 h-4" /></button>
+                      </div>
+                      <div className="p-5 space-y-4 text-xs font-semibold text-slate-700">
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2">
+                          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                          <span className="text-[10px] text-amber-800 leading-relaxed font-semibold">Warning: You are reassigning {selectedStudentIds.length} selected students to a new class profile destination.</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block mb-1">Select New Class Level</label>
+                            <select value={moveStudentForm.newClass} onChange={e => setMoveStudentForm({ ...moveStudentForm, newClass: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                              <option value="Grade 7">Grade 7</option>
+                              <option value="Grade 8">Grade 8</option>
+                              <option value="Grade 9">Grade 9</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block mb-1">Select New Section</label>
+                            <select value={moveStudentForm.newSection} onChange={e => setMoveStudentForm({ ...moveStudentForm, newSection: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                              <option value="A">A</option>
+                              <option value="B">B</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t flex justify-end gap-2 text-xs font-bold">
+                          <button onClick={() => setCurrentModal(null)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl">Cancel</button>
+                          <button onClick={() => {
+                            setStudentsList(studentsList.map(s => {
+                              if (selectedStudentIds.includes(s.id)) {
+                                return { ...s, class: moveStudentForm.newClass, section: moveStudentForm.newSection };
+                              }
+                              return s;
+                            }));
+                            setSelectedStudentIds([]);
+                            setCurrentModal(null);
+                            triggerToast(`${selectedStudentIds.length} students reassigned to class successfully.`);
+                          }} className="bg-[#4F46E5] hover:bg-indigo-600 text-white px-5 py-2 rounded-xl shadow-md">Reassign Students</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Modal: Import Students CSV Wizard ──────────────────── */}
+                {currentModal === 'importStudents' && (
+                  <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xl w-full max-w-md overflow-hidden animate-zoomIn">
+                      <div className="p-5 border-b flex justify-between items-center bg-slate-50">
+                        <h3 className="text-sm font-extrabold text-slate-900">Bulk Import Students Wizard</h3>
+                        <button onClick={() => setCurrentModal(null)} className="p-1 hover:bg-slate-200 rounded-lg text-slate-400"><X className="w-4 h-4" /></button>
+                      </div>
+                      
+                      <div className="p-5 space-y-4 text-xs font-semibold text-slate-700">
+                        {/* Step bar */}
+                        <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 border-b pb-3 flex-wrap gap-2">
+                          <span className={studentImportStep >= 1 ? 'text-[#4F46E5]' : ''}>1. Upload</span>
+                          <span className={studentImportStep >= 2 ? 'text-[#4F46E5]' : ''}>2. Map Columns</span>
+                          <span className={studentImportStep >= 3 ? 'text-[#4F46E5]' : ''}>3. Validation</span>
+                          <span className={studentImportStep >= 4 ? 'text-[#4F46E5]' : ''}>4. Preview</span>
+                        </div>
+
+                        {studentImportStep === 1 && (
+                          <div className="space-y-4">
+                            <p className="text-[11px] text-slate-500 font-medium">Upload student list spreadsheet file (CSV / XLS format).</p>
+                            <label className="block border-2 border-dashed rounded-xl p-8 text-center cursor-pointer hover:bg-slate-50 transition-colors">
+                              <Download className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                              <span className="block text-[11px] text-[#4F46E5] font-extrabold">Select Directory File</span>
+                              <span className="block text-[9px] text-slate-400 mt-1">Download template file here</span>
+                              <input type="file" className="hidden" onChange={() => setStudentImportStep(2)} />
+                            </label>
+                          </div>
+                        )}
+
+                        {studentImportStep === 2 && (
+                          <div className="space-y-3.5">
+                            <p className="text-[11px] text-slate-500 font-medium">Map spreadsheet header rows to student schema parameters.</p>
+                            <div className="space-y-2.5">
+                              <div className="flex justify-between items-center"><span className="text-[10px] text-slate-400">Full Name</span> <strong>Mapped to col_name</strong></div>
+                              <div className="flex justify-between items-center"><span className="text-[10px] text-slate-400">Admission No</span> <strong>Mapped to col_adm_id</strong></div>
+                              <div className="flex justify-between items-center"><span className="text-[10px] text-slate-400">Parent Name</span> <strong>Mapped to col_parent_name</strong></div>
+                            </div>
+                            <div className="pt-4 border-t flex justify-end gap-2">
+                              <button onClick={() => setStudentImportStep(1)} className="px-3.5 py-1.5 text-slate-450 hover:bg-slate-100 rounded-xl">Back</button>
+                              <button onClick={() => setStudentImportStep(3)} className="bg-[#4F46E5] hover:bg-indigo-600 text-white px-4 py-1.5 rounded-xl shadow-sm">Proceed to Validate</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {studentImportStep === 3 && (
+                          <div className="space-y-3.5">
+                            <p className="text-[11px] text-slate-500 font-medium">Validation Logs</p>
+                            <div className="bg-slate-50 p-3 rounded-xl border max-h-[100px] overflow-y-auto space-y-1 font-mono text-[9px]">
+                              <div className="text-emerald-600">[Verified] 3 student records mapped correctly.</div>
+                              <div className="text-emerald-600">[Verified] No duplicates found in sheet database.</div>
+                            </div>
+                            <div className="pt-4 border-t flex justify-end gap-2">
+                              <button onClick={() => setStudentImportStep(2)} className="px-3.5 py-1.5 text-slate-450 hover:bg-slate-100 rounded-xl">Back</button>
+                              <button onClick={() => setStudentImportStep(4)} className="bg-[#4F46E5] hover:bg-indigo-600 text-white px-4 py-1.5 rounded-xl shadow-sm">Preview Records</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {studentImportStep === 4 && (
+                          <div className="space-y-4">
+                            <p className="text-[11px] text-slate-500 font-medium">Verify parsed outline structure before import.</p>
+                            <div className="bg-slate-50 border rounded-xl p-3.5 space-y-2 max-h-[120px] overflow-y-auto font-mono text-[9px] text-slate-600">
+                              <div>Record 1: Sneha Gupta • Class 8B • Parent: Sanjay Gupta</div>
+                              <div>Record 2: Rohan Deshmukh • Class 8A • Parent: Anil Deshmukh</div>
+                              <div>Record 3: Aditya Sen • Class 9A • Parent: Rahul Sen</div>
+                            </div>
+                            <div className="pt-4 border-t flex justify-end gap-2 text-xs font-bold">
+                              <button onClick={() => setStudentImportStep(3)} className="px-3.5 py-1.5 text-slate-500">Back</button>
+                              <button onClick={handleImportCsvSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl shadow-md">Complete Bulk Import</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            );
+          })()}
 
           {activeMenu === 'users' && activeSubMenu === 'teachers' && (
             <div className="space-y-6">
@@ -6857,55 +7577,156 @@ export default function SchoolAdminDashboard() {
 
             {/* Modal Forms */}
             {currentModal === 'createStudent' && (
-              <form onSubmit={handleAddStudentSubmit} className="space-y-4 text-xs font-semibold text-slate-700">
-                <div className="border-b pb-2"><h4 className="text-slate-800 font-bold uppercase tracking-wider text-[10px]">Personal Information</h4></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block mb-1">Full Name *</label>
-                    <input type="text" required value={newStudentForm.fullName} onChange={(e) => setNewStudentForm({ ...newStudentForm, fullName: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
-                  </div>
-                  <div>
-                    <label className="block mb-1">Gender</label>
-                    <select value={newStudentForm.gender} onChange={(e) => setNewStudentForm({ ...newStudentForm, gender: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                    </select>
-                  </div>
+              <div className="space-y-4 text-xs font-semibold text-slate-700">
+                {/* Step indicator bar */}
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 border-b pb-3 flex-wrap gap-2">
+                  <span className={studentCreationStep >= 1 ? 'text-[#4F46E5]' : ''}>1. Personal</span>
+                  <span className={studentCreationStep >= 2 ? 'text-[#4F46E5]' : ''}>2. Academic</span>
+                  <span className={studentCreationStep >= 3 ? 'text-[#4F46E5]' : ''}>3. Parent</span>
+                  <span className={studentCreationStep >= 4 ? 'text-[#4F46E5]' : ''}>4. Account</span>
+                  <span className={studentCreationStep >= 5 ? 'text-[#4F46E5]' : ''}>5. Review</span>
                 </div>
 
-                <div className="border-b pb-2 pt-2"><h4 className="text-slate-800 font-bold uppercase tracking-wider text-[10px]">Academic parameters</h4></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block mb-1">Admission Number *</label>
-                    <input type="text" required value={newStudentForm.admissionNumber} onChange={(e) => setNewStudentForm({ ...newStudentForm, admissionNumber: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                {studentCreationStep === 1 && (
+                  <div className="space-y-4">
+                    <div className="border-b pb-2"><h4 className="text-slate-800 font-bold uppercase tracking-wider text-[10px]">Personal Information</h4></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block mb-1">Full Name *</label>
+                        <input type="text" required value={newStudentForm.fullName} onChange={(e) => setNewStudentForm({ ...newStudentForm, fullName: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                      </div>
+                      <div>
+                        <label className="block mb-1">Gender</label>
+                        <select value={newStudentForm.gender} onChange={(e) => setNewStudentForm({ ...newStudentForm, gender: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block mb-1">Date of Birth</label>
+                        <input type="date" value={newStudentForm.dob} onChange={(e) => setNewStudentForm({ ...newStudentForm, dob: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                      </div>
+                      <div>
+                        <label className="block mb-1">Preferred Language</label>
+                        <select className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                          <option>English</option>
+                          <option>Hindi</option>
+                          <option>Spanish</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex justify-end pt-2">
+                      <button type="button" onClick={() => setStudentCreationStep(2)} className="bg-[#4F46E5] text-white px-5 py-2 rounded-xl shadow-md">Next: Academic</button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block mb-1">Class Level</label>
-                    <select value={newStudentForm.class} onChange={(e) => setNewStudentForm({ ...newStudentForm, class: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                      <option value="Grade 6">Grade 6</option>
-                      <option value="Grade 7">Grade 7</option>
-                      <option value="Grade 8">Grade 8</option>
-                    </select>
-                  </div>
-                </div>
+                )}
 
-                <div className="border-b pb-2 pt-2"><h4 className="text-slate-800 font-bold uppercase tracking-wider text-[10px]">Parent Verification</h4></div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block mb-1">Parent Full Name *</label>
-                    <input type="text" required value={newStudentForm.parentName} onChange={(e) => setNewStudentForm({ ...newStudentForm, parentName: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                {studentCreationStep === 2 && (
+                  <div className="space-y-4">
+                    <div className="border-b pb-2"><h4 className="text-slate-800 font-bold uppercase tracking-wider text-[10px]">Academic parameters</h4></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block mb-1">Admission Number *</label>
+                        <input type="text" required value={newStudentForm.admissionNumber} onChange={(e) => setNewStudentForm({ ...newStudentForm, admissionNumber: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                      </div>
+                      <div>
+                        <label className="block mb-1">Class Level</label>
+                        <select value={newStudentForm.class} onChange={(e) => setNewStudentForm({ ...newStudentForm, class: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                          <option value="Grade 7">Grade 7</option>
+                          <option value="Grade 8">Grade 8</option>
+                          <option value="Grade 9">Grade 9</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block mb-1">Section</label>
+                        <select value={newStudentForm.section} onChange={(e) => setNewStudentForm({ ...newStudentForm, section: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block mb-1">Roll Number</label>
+                        <input type="text" value={newStudentForm.rollNumber} onChange={(e) => setNewStudentForm({ ...newStudentForm, rollNumber: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                      </div>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <button type="button" onClick={() => setStudentCreationStep(1)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl">Back</button>
+                      <button type="button" onClick={() => setStudentCreationStep(3)} className="bg-[#4F46E5] text-white px-5 py-2 rounded-xl shadow-md">Next: Parent</button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block mb-1">Parent Contact Email</label>
-                    <input type="email" value={newStudentForm.parentEmail} onChange={(e) => setNewStudentForm({ ...newStudentForm, parentEmail: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
-                  </div>
-                </div>
+                )}
 
-                <div className="pt-4 flex justify-end gap-2">
-                  <button type="button" onClick={() => setCurrentModal(null)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl">Cancel</button>
-                  <button type="submit" className="bg-[#4F46E5] text-white px-5 py-2 rounded-xl shadow-md">Register Student</button>
-                </div>
-              </form>
+                {studentCreationStep === 3 && (
+                  <div className="space-y-4">
+                    <div className="border-b pb-2"><h4 className="text-slate-800 font-bold uppercase tracking-wider text-[10px]">Parent Verification</h4></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block mb-1">Parent Full Name *</label>
+                        <input type="text" required value={newStudentForm.parentName} onChange={(e) => setNewStudentForm({ ...newStudentForm, parentName: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                      </div>
+                      <div>
+                        <label className="block mb-1">Parent Contact Email</label>
+                        <input type="email" value={newStudentForm.parentEmail} onChange={(e) => setNewStudentForm({ ...newStudentForm, parentEmail: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block mb-1">Parent Phone Number</label>
+                      <input type="text" value={newStudentForm.parentPhone} onChange={(e) => setNewStudentForm({ ...newStudentForm, parentPhone: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <button type="button" onClick={() => setStudentCreationStep(2)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl">Back</button>
+                      <button type="button" onClick={() => setStudentCreationStep(4)} className="bg-[#4F46E5] text-white px-5 py-2 rounded-xl shadow-md">Next: Account</button>
+                    </div>
+                  </div>
+                )}
+
+                {studentCreationStep === 4 && (
+                  <div className="space-y-4">
+                    <div className="border-b pb-2"><h4 className="text-slate-800 font-bold uppercase tracking-wider text-[10px]">Account Details</h4></div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block mb-1">Student Corporate Email</label>
+                        <input type="email" value={newStudentForm.email} onChange={(e) => setNewStudentForm({ ...newStudentForm, email: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                      </div>
+                      <div>
+                        <label className="block mb-1">Username</label>
+                        <input type="text" value={newStudentForm.username} onChange={(e) => setNewStudentForm({ ...newStudentForm, username: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block mb-1">Temporary Password</label>
+                      <input type="password" value={newStudentForm.tempPassword} onChange={(e) => setNewStudentForm({ ...newStudentForm, tempPassword: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl" />
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <button type="button" onClick={() => setStudentCreationStep(3)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl">Back</button>
+                      <button type="button" onClick={() => setStudentCreationStep(5)} className="bg-[#4F46E5] text-white px-5 py-2 rounded-xl shadow-md">Next: Review</button>
+                    </div>
+                  </div>
+                )}
+
+                {studentCreationStep === 5 && (
+                  <div className="space-y-4">
+                    <div className="border-b pb-2"><h4 className="text-slate-800 font-bold uppercase tracking-wider text-[10px]">Review Information</h4></div>
+                    <div className="bg-slate-50 p-4.5 rounded-2xl border space-y-3.5 text-xs font-semibold text-slate-600 leading-relaxed">
+                      <div><strong className="text-slate-800 font-extrabold text-[13px]">{newStudentForm.fullName || 'No Name'}</strong> ({newStudentForm.gender})</div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
+                        <div><span className="text-slate-400 block font-bold uppercase tracking-wider text-[9px]">Admission No</span> {newStudentForm.admissionNumber || '—'}</div>
+                        <div><span className="text-slate-400 block font-bold uppercase tracking-wider text-[9px]">Class & Section</span> {newStudentForm.class} - {newStudentForm.section}</div>
+                        <div><span className="text-slate-400 block font-bold uppercase tracking-wider text-[9px]">Parent / Guardian</span> {newStudentForm.parentName || '—'}</div>
+                        <div><span className="text-slate-400 block font-bold uppercase tracking-wider text-[9px]">Student Email</span> {newStudentForm.email || '—'}</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between pt-2">
+                      <button type="button" onClick={() => setStudentCreationStep(4)} className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-xl">Back</button>
+                      <button type="button" onClick={handleAddStudentSubmit} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl shadow-md font-bold">Create Student</button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {currentModal === 'createTeacher' && (
