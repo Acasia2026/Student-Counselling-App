@@ -89,11 +89,31 @@ export default function SuperadminDashboard() {
   };
 
   // Logged-In User Session State
+<<<<<<< HEAD
   const [currentUser, setCurrentUser] = useState<any>({
     name: 'Rajesh Malhotra',
     email: 'admin@stxavier.edu.in',
     role: 'SCHOOL_ADMIN',
     schoolName: 'St. Xavier International Academy'
+=======
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('active_user_session');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse active user session:', e);
+        }
+      }
+    }
+    return {
+      name: 'Rajesh Malhotra',
+      email: 'admin@stxavier.edu.in',
+      role: 'SCHOOL_ADMIN',
+      schoolName: 'St. Xavier International Academy'
+    };
+>>>>>>> 5e40c7570fc583be88e5f85b265a451bb55ee2bf
   });
 
   // Navigation & Active Tab State
@@ -153,6 +173,7 @@ export default function SuperadminDashboard() {
   });
 
   // Dynamic School Tenants List (persisted across page navigation & reloads)
+<<<<<<< HEAD
   const [schoolsList, setSchoolsList] = useState<any[]>([
     { id: 'sch-101', name: 'St. Xavier International Academy', code: 'STX-DEL', domain: 'stxavier.edu.in', contactEmail: 'admin@stxavier.edu.in', status: 'ACTIVE', maxStudents: 2500, currentStudents: 2340, tier: 'ENTERPRISE', counselorsCount: 14, teachersCount: 180, sessionsThisMonth: 42100, joinedDate: '2025-01-15', address: 'Plot 4, Institutional Area, Vasant Kunj, New Delhi' },
     { id: 'sch-102', name: 'Oakridge Public School', code: 'OAK-BLR', domain: 'oakridge.edu.in', contactEmail: 'principal@oakridge.edu.in', status: 'ACTIVE', maxStudents: 1500, currentStudents: 1420, tier: 'PREMIUM', counselorsCount: 8, teachersCount: 110, sessionsThisMonth: 28400, joinedDate: '2025-03-20', address: 'Nanakramguda Road, Gachibowli, Hyderabad' },
@@ -197,6 +218,48 @@ export default function SuperadminDashboard() {
       }
     }
   }, []);
+=======
+  const [schoolsList, setSchoolsList] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('superadmin_schools_list');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse saved schools:', e);
+        }
+      }
+    }
+    return [
+      { id: 'sch-101', name: 'St. Xavier International Academy', code: 'STX-DEL', domain: 'stxavier.edu.in', contactEmail: 'admin@stxavier.edu.in', status: 'ACTIVE', maxStudents: 2500, currentStudents: 2340, tier: 'ENTERPRISE', counselorsCount: 14, teachersCount: 180, sessionsThisMonth: 42100, joinedDate: '2025-01-15', address: 'Plot 4, Institutional Area, Vasant Kunj, New Delhi' },
+      { id: 'sch-102', name: 'Oakridge Public School', code: 'OAK-BLR', domain: 'oakridge.edu.in', contactEmail: 'principal@oakridge.edu.in', status: 'ACTIVE', maxStudents: 1500, currentStudents: 1420, tier: 'PREMIUM', counselorsCount: 8, teachersCount: 110, sessionsThisMonth: 28400, joinedDate: '2025-03-20', address: 'Nanakramguda Road, Gachibowli, Hyderabad' },
+      { id: 'sch-103', name: 'Greenwood High International', code: 'GWH-HYD', domain: 'greenwood.ac.in', contactEmail: 'info@greenwood.ac.in', status: 'ACTIVE', maxStudents: 3000, currentStudents: 2890, tier: 'ENTERPRISE', counselorsCount: 18, teachersCount: 220, sessionsThisMonth: 58900, joinedDate: '2025-05-10', address: 'Sarjapur Main Road, Varthur Hobli, Bengaluru' },
+      { id: 'sch-104', name: 'Delhi Public School Sector 45', code: 'DPS-GGN', domain: 'dpsgurgaon.edu.in', contactEmail: 'contact@dpsgurgaon.edu.in', status: 'SUSPENDED', maxStudents: 1000, currentStudents: 980, tier: 'BASIC', counselorsCount: 4, teachersCount: 75, sessionsThisMonth: 12100, joinedDate: '2025-08-01', address: 'Site No. 1, Sector 45, Urban Estate, Gurgaon' },
+      { id: 'sch-105', name: 'Heritage Experimental School', code: 'HES-MUM', domain: 'heritage.edu.in', contactEmail: 'admin@heritage.edu.in', status: 'ACTIVE', maxStudents: 800, currentStudents: 740, tier: 'PREMIUM', counselorsCount: 6, teachersCount: 60, sessionsThisMonth: 19500, joinedDate: '2025-11-12', address: 'Bandra-Kurla Complex, Bandra East, Mumbai' }
+    ];
+  });
+
+  // Global Platform User Directory (persisted across page navigation & reloads)
+  const [usersList, setUsersList] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('superadmin_users_list');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse saved users:', e);
+        }
+      }
+    }
+    return [
+      { id: 'usr-001', name: 'Dr. Evelyn Vance', email: 'evelyn.vance@platform.edu', role: 'SUPERADMIN', school: 'Global Platform', status: 'ACTIVE' },
+      { id: 'usr-002', name: 'Rajesh Malhotra', email: 'principal@stxavier.edu.in', role: 'SCHOOL_ADMIN', school: 'St. Xavier International Academy', status: 'ACTIVE' },
+      { id: 'usr-003', name: 'Sunita Sharma', email: 'counselor.s@oakridge.edu.in', role: 'COUNSELOR', school: 'Oakridge Public School', status: 'ACTIVE' },
+      { id: 'usr-004', name: 'Vikram Seth', email: 'v.seth@greenwood.ac.in', role: 'TEACHER', school: 'Greenwood High International', status: 'ACTIVE' },
+      { id: 'usr-005', name: 'Aarav Sharma', email: 'aarav.s@stxavier.edu.in', role: 'STUDENT', school: 'St. Xavier International Academy', status: 'ACTIVE' }
+    ];
+  });
+>>>>>>> 5e40c7570fc583be88e5f85b265a451bb55ee2bf
 
   // Persist schoolsList to localStorage whenever updated
   useEffect(() => {

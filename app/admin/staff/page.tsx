@@ -75,6 +75,7 @@ Siddharth,Verma,s.verma@school.edu,TEACHER,Sciences & Physics`);
   const [parsedRecords, setParsedRecords] = useState<any[]>([]);
 
   // Staff Members State List (persisted across page navigation & reloads)
+<<<<<<< HEAD
   const [staffList, setStaffList] = useState<any[]>([
     {
       id: 'stf-201',
@@ -159,6 +160,92 @@ Siddharth,Verma,s.verma@school.edu,TEACHER,Sciences & Physics`);
       }
     }
   }, []);
+=======
+  const [staffList, setStaffList] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('admin_staff_list');
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to parse saved staff:', e);
+        }
+      }
+    }
+    return [
+      {
+        id: 'stf-201',
+        firstName: 'Dr. Ananya',
+        lastName: 'Rao',
+        name: 'Dr. Ananya Rao',
+        email: 'ananya.rao@stxavier.edu.in',
+        phoneNumber: '+91 98765 43210',
+        role: 'COUNSELOR',
+        department: 'Student Wellness & Psychology',
+        assignedClasses: ['Grade 10 Mental Health', 'Grade 12 Career Guidance'],
+        status: 'ACTIVE',
+        invitationToken: null,
+        createdAt: '2025-02-10'
+      },
+      {
+        id: 'stf-202',
+        firstName: 'Vikram',
+        lastName: 'Seth',
+        name: 'Vikram Seth',
+        email: 'v.seth@stxavier.edu.in',
+        phoneNumber: '+91 98123 45678',
+        role: 'TEACHER',
+        department: 'Mathematics & STEM',
+        assignedClasses: ['Grade 11-A Calculus', 'Grade 10-B Algebra'],
+        status: 'ACTIVE',
+        invitationToken: null,
+        createdAt: '2025-03-15'
+      },
+      {
+        id: 'stf-203',
+        firstName: 'Meera',
+        lastName: 'Deshmukh',
+        name: 'Meera Deshmukh',
+        email: 'meera.d@stxavier.edu.in',
+        phoneNumber: '+91 97111 22233',
+        role: 'COUNSELOR',
+        department: 'Special Educational Needs (SEN)',
+        assignedClasses: ['CHC Cognitive Profiling', 'Behavioral Support'],
+        status: 'PENDING',
+        invitationToken: 'inv_tok_998124_sec',
+        createdAt: '2026-08-14'
+      },
+      {
+        id: 'stf-204',
+        firstName: 'Sunil',
+        lastName: 'Kapoor',
+        name: 'Sunil Kapoor',
+        email: 'sunil.k@stxavier.edu.in',
+        phoneNumber: '+91 96543 21098',
+        role: 'TEACHER',
+        department: 'Sciences & Physics',
+        assignedClasses: ['Grade 12-Physics AP', 'Grade 9-Gen Science'],
+        status: 'SUSPENDED',
+        invitationToken: null,
+        createdAt: '2025-06-01'
+      },
+      {
+        id: 'stf-205',
+        firstName: 'Pooja',
+        lastName: 'Nair',
+        name: 'Pooja Nair',
+        email: 'pooja.nair@stxavier.edu.in',
+        phoneNumber: '+91 98999 88877',
+        role: 'TEACHER',
+        department: 'Humanities & English',
+        assignedClasses: ['Grade 10-A English Lit'],
+        status: 'PENDING',
+        invitationToken: 'inv_tok_443211_sec',
+        createdAt: '2026-08-16'
+      }
+    ];
+  });
+>>>>>>> 5e40c7570fc583be88e5f85b265a451bb55ee2bf
 
   // Persist staffList to localStorage whenever updated
   useEffect(() => {
