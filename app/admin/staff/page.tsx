@@ -76,6 +76,9 @@ Siddharth,Verma,s.verma@school.edu,TEACHER,Sciences & Physics`);
 
   // Staff Members State List (persisted across page navigation & reloads)
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 19a0133 (updated mobile student app)
   const [staffList, setStaffList] = useState<any[]>([
     {
       id: 'stf-201',
@@ -160,6 +163,7 @@ Siddharth,Verma,s.verma@school.edu,TEACHER,Sciences & Physics`);
       }
     }
   }, []);
+<<<<<<< HEAD
 =======
   const [staffList, setStaffList] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
@@ -246,6 +250,8 @@ Siddharth,Verma,s.verma@school.edu,TEACHER,Sciences & Physics`);
     ];
   });
 >>>>>>> 5e40c7570fc583be88e5f85b265a451bb55ee2bf
+=======
+>>>>>>> 19a0133 (updated mobile student app)
 
   // Persist staffList to localStorage whenever updated
   useEffect(() => {

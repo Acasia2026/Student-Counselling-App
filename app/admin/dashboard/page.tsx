@@ -2977,7 +2977,11 @@ export default function SchoolAdminDashboard() {
                             </div>
                             <div>
                               <span className="text-[9px] text-slate-400 uppercase font-bold block">Student Roll Number</span>
+<<<<<<< HEAD
                               <strong className="text-slate-800 block text-xs mt-1">{st.rollNumber || '04'}</strong>
+=======
+                              <strong className="text-slate-800 block text-xs mt-1">{(st as any).rollNumber || '04'}</strong>
+>>>>>>> 19a0133 (updated mobile student app)
                             </div>
                           </div>
 

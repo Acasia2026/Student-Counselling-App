@@ -2,11 +2,19 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+<<<<<<< HEAD
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   --background: #F8FAFC;
   --foreground: #0F172A;
+=======
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap');
+
+:root {
+  --background: #f7f9fb;
+  --foreground: #191c1e;
+>>>>>>> 19a0133 (updated mobile student app)
 }
 
 body {
@@ -16,6 +24,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+<<<<<<< HEAD
+=======
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+>>>>>>> 19a0133 (updated mobile student app)
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;

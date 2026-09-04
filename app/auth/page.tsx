@@ -102,10 +102,17 @@ export default function AuthPage() {
         router.push('/admin/staff');
         break;
       case 'STUDENT':
+<<<<<<< HEAD
         router.push('/');
         break;
       default:
         router.push('/');
+=======
+        router.push('/student');
+        break;
+      default:
+        router.push('/student');
+>>>>>>> 19a0133 (updated mobile student app)
     }
   };
 

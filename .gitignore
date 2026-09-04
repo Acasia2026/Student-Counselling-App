@@ -1,13 +1,18 @@
 # Dependencies
-/node_modules
+node_modules/
+**/node_modules/
 /.pnpm
 /.yarn
 
-# Production / Next.js Build Outputs
-/.next/
-/out/
-/build/
-/dist/
+# Production / Build Outputs
+.next/
+**/.next/
+out/
+build/
+dist/
+**/dist/
+.expo/
+**/.expo/
 
 # Environment Variables & Secrets (CRITICAL SECURITY)
 .env

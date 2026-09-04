@@ -90,11 +90,15 @@ export default function SuperadminDashboard() {
 
   // Logged-In User Session State
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 19a0133 (updated mobile student app)
   const [currentUser, setCurrentUser] = useState<any>({
     name: 'Rajesh Malhotra',
     email: 'admin@stxavier.edu.in',
     role: 'SCHOOL_ADMIN',
     schoolName: 'St. Xavier International Academy'
+<<<<<<< HEAD
 =======
   const [currentUser, setCurrentUser] = useState<any>(() => {
     if (typeof window !== 'undefined') {
@@ -114,6 +118,8 @@ export default function SuperadminDashboard() {
       schoolName: 'St. Xavier International Academy'
     };
 >>>>>>> 5e40c7570fc583be88e5f85b265a451bb55ee2bf
+=======
+>>>>>>> 19a0133 (updated mobile student app)
   });
 
   // Navigation & Active Tab State
@@ -174,6 +180,9 @@ export default function SuperadminDashboard() {
 
   // Dynamic School Tenants List (persisted across page navigation & reloads)
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 19a0133 (updated mobile student app)
   const [schoolsList, setSchoolsList] = useState<any[]>([
     { id: 'sch-101', name: 'St. Xavier International Academy', code: 'STX-DEL', domain: 'stxavier.edu.in', contactEmail: 'admin@stxavier.edu.in', status: 'ACTIVE', maxStudents: 2500, currentStudents: 2340, tier: 'ENTERPRISE', counselorsCount: 14, teachersCount: 180, sessionsThisMonth: 42100, joinedDate: '2025-01-15', address: 'Plot 4, Institutional Area, Vasant Kunj, New Delhi' },
     { id: 'sch-102', name: 'Oakridge Public School', code: 'OAK-BLR', domain: 'oakridge.edu.in', contactEmail: 'principal@oakridge.edu.in', status: 'ACTIVE', maxStudents: 1500, currentStudents: 1420, tier: 'PREMIUM', counselorsCount: 8, teachersCount: 110, sessionsThisMonth: 28400, joinedDate: '2025-03-20', address: 'Nanakramguda Road, Gachibowli, Hyderabad' },
@@ -218,6 +227,7 @@ export default function SuperadminDashboard() {
       }
     }
   }, []);
+<<<<<<< HEAD
 =======
   const [schoolsList, setSchoolsList] = useState<any[]>(() => {
     if (typeof window !== 'undefined') {
@@ -260,6 +270,8 @@ export default function SuperadminDashboard() {
     ];
   });
 >>>>>>> 5e40c7570fc583be88e5f85b265a451bb55ee2bf
+=======
+>>>>>>> 19a0133 (updated mobile student app)
 
   // Persist schoolsList to localStorage whenever updated
   useEffect(() => {

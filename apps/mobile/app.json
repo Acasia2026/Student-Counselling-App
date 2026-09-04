@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "EduQuest AI Student Portal",
+    "slug": "eduquest-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#4F46E5"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#4F46E5"
+      },
+      "package": "com.eduquest.student"
+    }
+  }
+}
