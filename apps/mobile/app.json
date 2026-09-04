@@ -32,9 +32,6 @@
         "MICROPHONE"
       ]
     },
-    "plugins": [
-      "react-native-reanimated/plugin"
-    ],
     "extra": {
       "apiUrl": "http://localhost:3000/api"
     }
