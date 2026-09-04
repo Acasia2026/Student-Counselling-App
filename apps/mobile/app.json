@@ -3,20 +3,40 @@
     "name": "EduQuest AI Student Portal",
     "slug": "eduquest-mobile",
     "version": "1.0.0",
+    "scheme": "eduquest",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
-      "backgroundColor": "#4F46E5"
+      "backgroundColor": "#4F46E5",
+      "resizeMode": "contain"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "src/assets/**/*",
+      "assets/**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.eduquest.student",
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Allow network access for learning activities and synchronization."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#4F46E5"
       },
-      "package": "com.eduquest.student"
+      "package": "com.eduquest.student",
+      "permissions": [
+        "INTERNET",
+        "CAMERA",
+        "MICROPHONE"
+      ]
+    },
+    "plugins": [
+      "react-native-reanimated/plugin"
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:3000/api"
     }
   }
 }
