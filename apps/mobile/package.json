@@ -12,32 +12,33 @@
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-native": "*",
+    "@react-native-async-storage/async-storage": "^1.23.1",
+    "@react-navigation/bottom-tabs": "^6.5.0",
+    "@react-navigation/native": "^6.1.0",
+    "@react-navigation/native-stack": "^6.9.0",
+    "axios": "^1.6.0",
     "expo": "^57.0.0",
     "expo-constants": "~57.0.17",
     "expo-font": "~57.0.3",
     "expo-splash-screen": "*",
     "expo-status-bar": "*",
-    "@react-navigation/native": "^6.1.0",
-    "@react-navigation/bottom-tabs": "^6.5.0",
-    "@react-navigation/native-stack": "^6.9.0",
+    "lucide-react-native": "^0.344.0",
+    "nativewind": "^4.0.1",
+    "react": "^18.2.0",
+    "react-native": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "^4.6.0",
     "react-native-safe-area-context": "*",
     "react-native-screens": "*",
-    "react-native-gesture-handler": "*",
-    "react-native-reanimated": "*",
-    "nativewind": "^4.0.1",
-    "zustand": "^4.4.0",
-    "axios": "^1.6.0",
-    "@react-native-async-storage/async-storage": "^1.23.1",
-    "lucide-react-native": "^0.344.0"
+    "react-native-worklets": "^0.12.1",
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.23.0",
     "@types/react": "^18.2.0",
     "@types/react-native": "*",
-    "typescript": "^5.3.3",
     "babel-preset-expo": "~57.0.10",
-    "tailwindcss": "^3.4.1"
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.3.3"
   }
 }
