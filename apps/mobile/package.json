@@ -8,6 +8,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "prebuild": "expo prebuild --clean",
+    "postinstall": "node -e \"const fs = require('fs'), p = './node_modules/@expo/cli/build/src/start/server/metro/externals.js'; if (fs.existsSync(p)) { let c = fs.readFileSync(p, 'utf8'); fs.writeFileSync(p, c.replace(/\\/\\^_\\|\\^\\(internal\\|v8\\|node-inspect\\)\\\\\\/\\|\\\\\\//g, '/^_|^(internal|v8|node-inspect)\\\\/|\\\\/|:/')); }\"",
     "lint": "eslint src --ext .ts,.tsx"
   },
   "dependencies": {
